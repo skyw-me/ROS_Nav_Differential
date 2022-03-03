@@ -101,8 +101,8 @@ void Chassis::UpdateOdometry()
 
   // differential drive
   // L: 0, R: 1
-  double dx = CHASSIS_WHEEL_RADIUS * (-d[1] + d[0]) / 2;
-  double dtheta = CHASSIS_WHEEL_RADIUS * (-d[1] - d[0]) / CHASSIS_D;
+  double dx = CHASSIS_WHEEL_RADIUS * (d[1] + (-d[0])) / 2;
+  double dtheta = CHASSIS_WHEEL_RADIUS * (d[1] - (-d[0])) / CHASSIS_D;
 
   x += dx * cos(theta);
   y += dx * sin(theta);
@@ -165,8 +165,8 @@ void Chassis::CallbackVelocity(const geometry_msgs::Twist::ConstPtr &twist)
 
   // L: 0, R: 1
   double w[2] = {
-    (vx - vw * CHASSIS_D / 2) / CHASSIS_WHEEL_RADIUS, 
-    -(vx + vw * CHASSIS_D / 2) / CHASSIS_WHEEL_RADIUS
+    -(vx - vw * CHASSIS_D / 2) / CHASSIS_WHEEL_RADIUS, 
+    (vx + vw * CHASSIS_D / 2) / CHASSIS_WHEEL_RADIUS
   };
 
   // Velocity Limitation
