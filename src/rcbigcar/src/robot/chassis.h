@@ -56,16 +56,16 @@ private:
   /*
   * Motor
   */
-  Motor* motors[4];
+  Motor* motors[2];
   ros::Time motorWatchdog;
 
   /*
   * Odometry
   */
   double x, y, theta;
-  double last_position[4];
+  double last_position[2];
 
-  double vx_local, vy_local, vtheta_local;
+  double vx_local, vtheta_local;
   ros::Time odom_last_time;
 
   uint32_t odom_seq;

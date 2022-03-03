@@ -9,7 +9,7 @@
 
 
 const double kWatchdogTimeout = 1.0;
-const double kDeactivationTimeout = 30.0;
+const double kDeactivationTimeout = 10.0;
 
 // dynamic reconfiguration
 rcbigcar::TeleopConfig config;
@@ -19,7 +19,7 @@ ros::Publisher twist_pub;
 ros::Subscriber joy_sub;
 
 // ramp
-RampFilter ramp_filters[3];
+RampFilter ramp_filters[2];
 
 // twist
 geometry_msgs::Twist twist_target;
@@ -38,7 +38,7 @@ void callback_joy(const sensor_msgs::Joy::ConstPtr &joy)
     // Logitech F710 Gamepad
     twist_target.angular.z = joy->axes[0] * config.MaxW;
     twist_target.linear.x = joy->axes[3] * config.MaxX;
-    twist_target.linear.y = joy->axes[2] * config.MaxY;
+    // twist_target.linear.y = joy->axes[2] * config.MaxY;
 
     // activate
     twist_active = true;
@@ -102,7 +102,7 @@ int main(int argc, char **argv)
             // update twist
             twist.angular.z = ramp_filters[0].filter(twist_target.angular.z, config.MaxW, config.MaxAccW);
             twist.linear.x = ramp_filters[1].filter(twist_target.linear.x, config.MaxX, config.MaxAccX);
-            twist.linear.y = ramp_filters[2].filter(twist_target.linear.y, config.MaxY, config.MaxAccY);
+            // twist.linear.y = ramp_filters[2].filter(twist_target.linear.y, config.MaxY, config.MaxAccY);
 
             // publish
             twist_pub.publish(twist);

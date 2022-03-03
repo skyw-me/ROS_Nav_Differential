@@ -24,7 +24,7 @@ Chassis::Chassis()
 
   // Setup Variables
   // Setup Motors
-  for (int i = 0; i < 4; i++)
+  for (int i = 0; i < 2; i++)
   {
     motors[i] = new Motor(MOTOR_CHASSIS_ID_START + i, &MOTOR_CHASSIS, MOTOR_CHASSIS_PARAMTER);
   }
@@ -43,13 +43,13 @@ Chassis::Chassis()
 
   // Setup Odometry
   x = y = theta = 0;
-  for (int i = 0; i < 4; i++)
+  for (int i = 0; i < 2; i++)
   {
     last_position[i] = motors[i]->getPosition();
   }
 
   odom_last_time = ros::Time::now();
-  vx_local = vy_local = vtheta_local = 0;
+  vx_local = vtheta_local = 0;
 
   odom_seq = 0;
 
@@ -67,7 +67,7 @@ Chassis::Chassis()
 Chassis::~Chassis()
 {
   // Free Motors
-  for (int i = 0; i < 4; i++)
+  for (int i = 0; i < 2; i++)
   {
     delete motors[i];
   }
@@ -76,7 +76,7 @@ Chassis::~Chassis()
 void Chassis::update()
 {
   // Update Motors
-  for (int i = 0; i < 4; i++)
+  for (int i = 0; i < 2; i++)
   {
     motors[i]->update();
   }
@@ -90,23 +90,22 @@ void Chassis::update()
 void Chassis::UpdateOdometry()
 {
   // Must get initial position
-  double d[4];
+  double d[2];
 
   // calculate delta
-  for (int id = 0; id < 4; id++)
+  for (int id = 0; id < 2; id++)
   {
     d[id] = motors[id]->getPosition() - last_position[id];
     last_position[id] = motors[id]->getPosition();
   }
 
-  // swap d[0] and d[1]
-  double k = CHASSIS_WHEEL_R / 4.0;
-  double dx = k * (+d[0] - d[1] + d[2] - d[3]);
-  double dy = k * (-d[0] - d[1] + d[2] + d[3]);
-  double dtheta = k / (CHASSIS_LENGTH_A + CHASSIS_LENGTH_B) * (-d[0] - d[1] - d[2] - d[3]);
+  // differential drive
+  // L: 0, R: 1
+  double dx = CHASSIS_WHEEL_RADIUS * (-d[1] + d[0]) / 2;
+  double dtheta = CHASSIS_WHEEL_RADIUS * (-d[1] - d[0]) / CHASSIS_D;
 
-  x += dx * cos(theta) - dy * sin(theta);
-  y += dx * sin(theta) + dy * cos(theta);
+  x += dx * cos(theta);
+  y += dx * sin(theta);
 
   theta += dtheta;
   theta = fmod(theta, 2 * M_PI);
@@ -116,7 +115,6 @@ void Chassis::UpdateOdometry()
   odom_last_time = ros::Time::now();
 
   vx_local = dx / dt;
-  vy_local = dy / dt;
   vtheta_local = dtheta / dt;
 
   PublishPosition();
@@ -143,7 +141,7 @@ void Chassis::PublishPosition()
   odom.pose.pose.orientation.w = yaw_q.w();
   // fill twist
   odom.twist.twist.linear.x = vx_local;
-  odom.twist.twist.linear.y = vy_local;
+  odom.twist.twist.linear.y = 0;
   odom.twist.twist.angular.z = vtheta_local;
   odom_pub.publish(odom);
 
@@ -163,29 +161,28 @@ void Chassis::CallbackVelocity(const geometry_msgs::Twist::ConstPtr &twist)
 
   // set motor power
   double vx = twist->linear.x;
-  double vy = twist->linear.y;
   double vw = twist->angular.z;
 
-  double a = CHASSIS_LENGTH_A + CHASSIS_LENGTH_B;
-
-  // swap w[0] and w[1]
-  double w[4] = { ((-a * vw + vx - vy) / CHASSIS_WHEEL_R), -((a * vw + vx + vy) / CHASSIS_WHEEL_R),
-                  (-a * vw + vx + vy) / CHASSIS_WHEEL_R, -((a * vw + vx - vy) / CHASSIS_WHEEL_R) };
+  // L: 0, R: 1
+  double w[2] = {
+    (vx - vw * CHASSIS_D / 2) / CHASSIS_WHEEL_RADIUS, 
+    -(vx + vw * CHASSIS_D / 2) / CHASSIS_WHEEL_RADIUS
+  };
 
   // Velocity Limitation
   double maxVel = 0.0;
-  for (int i = 0; i < 4; i++)
+  for (int i = 0; i < 2; i++)
     maxVel = std::max(maxVel, std::abs(w[i]));
 
   if (maxVel > Dyn_Config_MaxVel)
   {
     double factor = Dyn_Config_MaxVel / maxVel;
-    for (int i = 0; i < 4; i++)
+    for (int i = 0; i < 2; i++)
       w[i] *= factor;
   }
 
   // Send Velocity
-  for (int i = 0; i < 4; i++)
+  for (int i = 0; i < 2; i++)
     motors[i]->Setpoint = w[i];
 }
 
@@ -195,7 +192,7 @@ void Chassis::UpdateWatchdog()
   if ((ros::Time::now() - motorWatchdog).toSec() > CHASSIS_WATCHDOG_TIMEOUT)
   {
     // Zero motor powers
-    for (int i = 0; i < 4; i++)
+    for (int i = 0; i < 2; i++)
     {
       motors[i]->Setpoint = 0;
     }
@@ -210,7 +207,7 @@ void Chassis::CallbackDynamicParam(rcbigcar::ChassisConfig &config, uint32_t lev
   Dyn_Config_MaxVel = config.MaxVel;
 
   // Dynamic Motor Params
-  for (int i = 0; i < 4; i++)
+  for (int i = 0; i < 2; i++)
   {
     motors[i]->setCoefficients(config.Kp, config.Ki, config.Kd, config.Kf, config.KmaxI, 1.0);
   }
@@ -227,7 +224,7 @@ void Chassis::UpdateDebug()
   std_msgs::Float64MultiArray motorSetpoint;
   std_msgs::Float64MultiArray motorReal;
 
-  for (int i = 0; i < 4; i++)
+  for (int i = 0; i < 2; i++)
   {
     motorSetpoint.data.push_back(motors[i]->Setpoint);
     motorReal.data.push_back(motors[i]->getVelocity());

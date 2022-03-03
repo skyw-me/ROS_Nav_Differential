@@ -41,7 +41,7 @@ struct MotionMotor
 
 #define ROBOT_SAMPLING_RATE 200
 
-#define HW_MOTOR_COUNT 8
+#define HW_MOTOR_COUNT 2
 #define HW_CAN_MOTOR_ID_1 0x200
 #define HW_CAN_MOTOR_ID_2 0x1FF
 #define HW_CAN0_ID "can0"
@@ -70,10 +70,10 @@ const MotorPreset MOTOR_GM3510 = {
     (1.0 / 8192.0) * 2.0 * M_PI
 };
 
-const MotorPreset MOTOR_GM6020_CUSTOM_REDUCER = {
-    30000,
-    (1.0 / 60.0) * 2.0 * M_PI / 5.0,
-    (1.0 / 8192.0) * 2.0 * M_PI / 5.0
+const MotorPreset MOTOR_M3508_NO_REDUCER = {
+    16384,
+    (1.0 / 60.0) * 2.0 * M_PI,
+    (1.0 / 8192.0) * 2.0 * M_PI
 };
 
 /*
@@ -89,20 +89,16 @@ const MotorParamter MOTOR_PARAMTER_DEFAULT = {
  * Chassis Paramters (SI Unit)
  */
 
-#define MOTOR_CHASSIS MOTOR_GM6020_CUSTOM_REDUCER
-#define MOTOR_CHASSIS_ID_START 4
+#define MOTOR_CHASSIS MOTOR_M3508_NO_REDUCER
+#define MOTOR_CHASSIS_ID_START 0
 #define MOTOR_CHASSIS_PARAMTER MOTOR_PARAMTER_DEFAULT
 
 const double CHASSIS_WATCHDOG_TIMEOUT = 1.0;
 
-// Mecanum wheel kinematics
-// Model definition : https://research.ijcaonline.org/volume113/number3/pxc3901586.pdf
-const double CHASSIS_WHEEL_R = 0.076;
-const double CHASSIS_LENGTH_A = 0.45 / 2.0;
-const double CHASSIS_LENGTH_B = 0.42 / 2.0;
-
-// L1 = 42 cm
-// L2 = 45 cm
+// Differential Kinematics
+// Ref: https://globaljournals.org/GJRE_Volume14/1-Kinematics-Localization-and-Control.pdf
+const double CHASSIS_D = 0.244;
+const double CHASSIS_WHEEL_RADIUS = 0.03;
 
 /*
  * Motion Paramters
