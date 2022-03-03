@@ -1,0 +1,30 @@
+<launch>
+    <arg name="is_debug" default="false" />
+
+    <!-- Chassis controller -->
+    <node 
+        name="robot"
+        pkg="rcbigcar"
+        type="robot"
+        respawn="true"
+        clear_params="true"
+    >
+        <param name="IsDebug" value="$(arg is_debug)" />
+    </node>
+
+    <!-- Chassis teleop -->
+    <node
+        name="teleop"
+        pkg="rcbigcar"
+        type="teleop"
+        respawn="true"
+        clear_params="true"></node>
+    <node
+        name="joy_node"
+        pkg="joy"
+        type="joy_node"
+        respawn="true"
+        clear_params="true">
+        <param name="autorepeat_rate" value="50" />
+    </node>
+</launch>
